@@ -1,33 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <string.h>
-
-typedef unsigned char       u8;     /* unsigned  8-bit */
-typedef unsigned short      u16;    /* unsigned 16-bit */
-typedef unsigned int        u32;    /* unsigned 32-bit */
-typedef unsigned long long  u64;    /* unsigned 64-bit */
-
-typedef signed char         s8;     /* signed  8-bit */
-typedef short               s16;    /* signed 16-bit */
-typedef int                 s32;    /* signed 32-bit */
-typedef long long           s64;    /* signed 64-bit */
-
-typedef float   f32;    /* single prec floating point */
-typedef double  f64;    /* double prec floating point */
-
-#ifndef TRUE
-#define TRUE    1
-#endif
-
-#ifndef FALSE
-#define FALSE   0
-#endif
-
-#ifndef NULL
-#define NULL    (void *)0
-#endif
-
+#include "common.h"
 
 typedef s32 ALMicroTime;
 
@@ -45,77 +16,6 @@ typedef struct {
 
 typedef struct {
 } ALVoice;
-
-
-typedef struct {
-  /* 0x0    */ u8   *unk0;
-  /* 0x4    */ u8    unk4[0x1000];
-  /* 0x1004 */ u32   unk1004;
-  /* 0x1008 */ u32   unk1008;
-  /* 0x100C */ u8    unk100C;
-  /* 0x100D */ u8    unk100D;
-  /* 0x100E */ u16   unk100E;
-} UnkStruct_85; // 0x1010 bytes
-
-void func_8008EFA0(u8 *arg0, UnkStruct_85 *arg1) {
-  s16 i;
-  s16 j;
-
-  arg1->unk0 = arg0;
-  arg1->unk1008 = arg1->unk1004 = 0;
-  for (i = 0; i < 0x100; i++) {
-    arg1->unk4[i] = i;
-  }
-  for (i = 0x100; i < 0x200; i++) {
-    arg1->unk4[i] = 0x1FF - i;
-  }
-  for (i = 0; i < 0x100; i++) {
-    for (j = 0; j < 4; j++) {
-      arg1->unk4[0x200 + (4 * i) + j] = i;
-    }
-  }
-  for (i = 0x600; i < 0x1000; i++) {
-    arg1->unk4[i] = i & 0xFF;
-  }
-  arg1->unk100C = 0;
-  arg1->unk100E = 0;
-}
-
-u8 func_8008F0D0(UnkStruct_85 *arg0) {
-  u8 ret;
-
-  if (arg0->unk100C == 0) {
-    arg0->unk100D = arg0->unk0[arg0->unk1004++];
-    if (!(arg0->unk100D & 0xF0)) {
-      arg0->unk100C = 1;
-      arg0->unk100D++;
-    } else {
-      arg0->unk100C = 2;
-      arg0->unk100E = arg0->unk0[arg0->unk1004++] + ((arg0->unk100D & 0xF) << 8);
-      arg0->unk100D = (arg0->unk100D >> 4) + 2;
-    }
-  }
-
-  if (arg0->unk100C == 1) {
-    ret = arg0->unk0[arg0->unk1004++];
-    arg0->unk4[arg0->unk1008++] = ret;
-    arg0->unk1008 &= 0xFFF;
-  }
-
-  if (arg0->unk100C == 2) {
-    ret = arg0->unk4[arg0->unk100E++];
-    arg0->unk100E &= 0xFFF;
-    arg0->unk4[arg0->unk1008++] = ret;
-    arg0->unk1008 &= 0xFFF;
-  }
-
-  arg0->unk100D--;
-  if (arg0->unk100D == 0) {
-    arg0->unk100C = 0;
-  }
-
-  return ret;
-}
 
 
 #define AL_RAW16_WAVE 1

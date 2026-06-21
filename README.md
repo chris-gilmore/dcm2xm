@@ -1,6 +1,6 @@
 # dcm2xm
 
-Parses dcm assets from N64's The New Tetris and converts them to xm files.  This is not a full reconstruction of the original xm files, since a dcm asset is processed xm pattern data.  This tool can be used to re-create all 16 songs (as partially reconstructed xm files) from the game and play them in most music players or tracker software.
+Parses dcm assets from N64's The New Tetris and converts them to xm files.  This is not a full reconstruction of the original xm files, since a dcm asset is processed xm pattern data.  This tool can re-create the 16 songs from the game (as partially reconstructed xm files), which can then be played from most media players and trackers.
 
 ## Make `dcm2xm`
 ```
@@ -8,7 +8,7 @@ $ mkdir ~/src
 $ cd ~/src
 $ git clone https://github.com/chris-gilmore/dcm2xm.git
 $ cd dcm2xm
-$ gcc -o dcm2xm dcm2xm.c -lm
+$ make
 ```
 
 ## Extract samples and dcm assets from ROM
@@ -60,20 +60,20 @@ $ ~/src/n64tetristools/tnt-extract.py -v ~/tnt.z64 --all-dcms
 
 ## Usage
 ```
-$ ./dcm2xm 0 > 0.stdout  # Creates Title.xm
-$ ./dcm2xm 1 > 1.stdout  # Creates Morocco.xm
-$ ./dcm2xm 2 > 2.stdout  # Creates Dvie.xm
-$ ./dcm2xm 3 > 3.stdout  # Creates Polyasia.xm
-$ ./dcm2xm 4 > 4.stdout  # Creates Floppy.xm
-$ ./dcm2xm 5 > 5.stdout  # Creates Pyramid.xm
-$ ./dcm2xm 6 > 6.stdout  # Creates Giali.xm
-$ ./dcm2xm 7 > 7.stdout  # Creates Thread6.xm
-$ ./dcm2xm 8 > 8.stdout  # Creates Haluci.xm
-$ ./dcm2xm 9 > 9.stdout  # Creates Mayan.xm
-$ ./dcm2xm 10 > 10.stdout  # Creates Greek.xm
-$ ./dcm2xm 11 > 11.stdout  # Creates Egypt.xm
-$ ./dcm2xm 12 > 12.stdout  # Creates Celtic.xm
-$ ./dcm2xm 13 > 13.stdout  # Creates Africa.xm
-$ ./dcm2xm 14 > 14.stdout  # Creates Japan.xm
-$ ./dcm2xm 15 > 15.stdout  # Creates Kalinka.xm
+$ ./build/dcm2xm 0 > 0.stdout  # Creates Title.xm
+$ ./build/dcm2xm 1 > 1.stdout  # Creates Morocco.xm
+$ ./build/dcm2xm 2 > 2.stdout  # Creates Dvie.xm
+$ ./build/dcm2xm 3 > 3.stdout  # Creates Polyasia.xm
+$ ./build/dcm2xm 4 > 4.stdout  # Creates Floppy.xm
+$ ./build/dcm2xm 5 > 5.stdout  # Creates Pyramid.xm
+$ ./build/dcm2xm 6 > 6.stdout  # Creates Giali.xm
+$ ./build/dcm2xm 7 > 7.stdout  # Creates Thread6.xm
+$ ./build/dcm2xm 8 > 8.stdout  # Creates Haluci.xm
+$ ./build/dcm2xm 9 > 9.stdout  # Creates Mayan.xm
+$ ./build/dcm2xm 10 > 10.stdout  # Creates Greek.xm
+$ ./build/dcm2xm 11 > 11.stdout  # Creates Egypt.xm
+$ ./build/dcm2xm 12 > 12.stdout  # Creates Celtic.xm
+$ ./build/dcm2xm 13 > 13.stdout  # Creates Africa.xm
+$ ./build/dcm2xm 14 > 14.stdout  # Creates Japan.xm
+$ ./build/dcm2xm 15 > 15.stdout  # Creates Kalinka.xm
 ```

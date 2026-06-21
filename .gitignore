@@ -1,6 +1,6 @@
+build/
 sample
 dcm
-*.o
-dcm2xm
-*.stdout
 *.xm
+*.stdout
+ignore/
