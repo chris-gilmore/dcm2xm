@@ -33,7 +33,7 @@ typedef double  f64;    /* double prec floating point */
 #include <stdint.h>
 
 #include <dcm_defs.h>
-#include <055220.h>
+#include <lz77_codec.h>
 #include <dcm.h>
 
 #endif /* !_COMMON_H_ */

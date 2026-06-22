@@ -34,9 +34,7 @@ CC := gcc
 INCLUDE_DIRS := include
 
 CFLAGS := $(foreach i,$(INCLUDE_DIRS),-I$(i))
-CFLAGS += -Wstrict-prototypes -Wsequence-point -Wextra
-#CFLAGS += -Wall
-#CFLAGS += -pedantic
+CFLAGS += -pedantic -Wall -Wextra -Wstrict-prototypes
 
 LDFLAGS :=
 

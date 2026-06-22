@@ -1,44 +1,34 @@
 #include "common.h"
 
-SongPlayer g_songPlayer;
+SongReader g_songReader;
 
 
-static ALMicroTime Dcm_VoiceHandler(void *);
+static void dcm_read_song(SongReader *);
 
-static void Audio_InitAudio(void);
+static void audio_init(void);
 
 
 #define NROWS 64
 
 typedef struct {
-  /* 0x0 */ u8   flags;
-  /* 0x1 */ u8   note;
-  /* 0x2 */ u8   instrument;
-  /* 0x3 */ u8   volume;
-  /* 0x4 */ u8   effect;
-  /* 0x5 */ u8   effect_param;
-} XmPacket; // 0x6 bytes
+  u8   flags;
+  u8   note;
+  u8   instrument;
+  u8   volume;
+  u8   effect;
+  u8   effect_param;
+} XmPacket;
 
 typedef struct XmPattern XmPattern;
 struct XmPattern {
-  /* 0x0  */ XmPattern  *next;
-  /* 0x4  */ u32         hdrlen;        // Pattern header length
-  /* 0x8  */ u8          packing_type;  // Packing type
-  /* 0xA  */ u16         nrows;         // Number of rows in pattern
-  /* 0xC  */ u16         data_sz;       // Packed pattern data size
-  /* 0x10 */ XmPacket   *data;          // Packed pattern data
-}; // 0x14 bytes
+  XmPattern  *next;
+  u32         hdrlen;        // Pattern header length
+  u8          packing_type;  // Packing type
+  u16         nrows;         // Number of rows in pattern
+  u16         data_sz;       // Packed pattern data size
+  XmPacket   *data;          // Packed pattern data
+};
 
-typedef struct {
-  /* 0x0  */ u8    sample_num;
-  /* 0x4  */ u32   sample_rate;
-  /* 0x8  */ u32   freq;
-  /* 0xC  */ u8    vol;
-  /* 0xD  */ u8    volume;
-  /* 0xE  */ u8    pan;
-} ChannelNote; // 0x10 bytes
-
-static ChannelNote channel_note[16];
 static u16 song_no = 0;
 static u16 bpm = 0;
 static XmPattern *xm_patterns = NULL;
@@ -206,10 +196,10 @@ u32 japan_sample_rates[] = { 32680, 8363, 8363, 18000, 16250, 8363, 8363, 8363, 
 u32 kalinka_sample_rates[] = { 8363, 8363, 8363, 8363, 8363, 8363, 8363, 8363, 13050, 26100, 26150, 8363, 8363, 8363, 8363, 8363, 8363, 10000, 8363, 22050, 22050, 22050, 22050, 22050, 22050, 8363 };
 
 typedef struct {
-  /* 0x0 */ char  *name;
-  /* 0x4 */ char  *file;
-  /* 0x8 */ u32   *sample_rates;
-} DcmLutEntry; // 0xC bytes
+  char  *name;
+  char  *file;
+  u32   *sample_rates;
+} DcmLutEntry;
 
 DcmLutEntry dcm_lut[] = {
   { "Title", "dcm/5BAB26.bin", title_sample_rates },
@@ -749,9 +739,7 @@ void fwrite_xm_samples(Sample *samples, u8 num_samples, FILE *fp) {
 }
 
 
-static ALMicroTime Dcm_VoiceHandler(void *arg0) {
-  SongPlayer *sp5C;
-  SongPlayer *sp58;
+static void dcm_read_song(SongReader *reader) {
   u8 sp57;
   u8 sp56;
   Channel *channel;
@@ -760,9 +748,7 @@ static ALMicroTime Dcm_VoiceHandler(void *arg0) {
   s32 sp44;
   u8 sp43;
 
-  sp5C = (SongPlayer *)arg0;
-
-  if (sp5C->unk454 == 1) {
+  if (reader->unk454 == 1) {
     static int pattern_no = 0;
     static int row_no = 0;
     static int subrow_no = 0;
@@ -770,46 +756,19 @@ static ALMicroTime Dcm_VoiceHandler(void *arg0) {
     static XmPacket *p_xm_pkt;
     static XmPacket xm_pkt[16];
 
-    if (sp5C->unk156C >= sp5C->unk450 && row_no == 0 && subrow_no == 0) {
-      sp5C->unk454 = 0;
-      return sp5C->unk1578;
+    if (reader->unk156C >= reader->unk450 && row_no == 0 && subrow_no == 0) {
+      reader->unk454 = 0;
+      return;
     }
 
-    if (sp5C->unk156C < sp5C->unk450) {
-      Audio2_800874ac_sevenliner(sp5C);
+    if (reader->unk156C < reader->unk450) {
+      Audio2_800874ac_sevenliner(reader);
     }
 
-    if (sp5C->unk1587) {
-      for (sp4C = 0; sp4C < sp5C->unk440; sp4C++) {
-        channel = &sp5C->channels[sp4C];
-        if (channel->state != 0) {
-          if (channel->unk28 == 0) {
-            channel->unk28 = 1;
-          }
-          channel->vol = (u16) ((sqrtf(channel->unk28) * sp5C->unk157C) / 16);
-          printf("channel->vol: %04hX\n", channel->vol);
-          //alSynSetVol(&sp5C->alGlobals->drvr, &channel->v, channel->vol, 1);
-        }
-      }
-      sp5C->unk1587 = FALSE;
-    }
-
-    if (sp5C->unk158C) {
-      for (sp4C = 0; sp4C < sp5C->unk440; sp4C++) {
-        channel = &sp5C->channels[sp4C];
-        if (channel->state != 0) {
-          channel->pan = sp5C->unk158D;
-          printf("channel->pan: %d\n", channel->pan);
-          //alSynSetPan(&sp5C->alGlobals->drvr, &channel->v, channel->pan);
-        }
-      }
-      sp5C->unk158C = FALSE;
-    }
-
-    for (sp4C = 0; sp4C < sp5C->unk440; sp4C++) {
+    for (sp4C = 0; sp4C < reader->unk440; sp4C++) {
       if (sp4C == 0) {
         if (row_no == 0 && subrow_no == 0) {
-          xm_pattern = new_xm_pattern(NROWS, sp5C->unk440);
+          xm_pattern = new_xm_pattern(NROWS, reader->unk440);
           push_xm_pattern(&xm_patterns, xm_pattern);
           p_xm_pkt = xm_pattern->data;
         }
@@ -823,156 +782,108 @@ static ALMicroTime Dcm_VoiceHandler(void *arg0) {
 
       printf("| Pat %02d | Row %02d.%d | Chn %02d | ", pattern_no, row_no, subrow_no, sp4C + 1);
 
-      if (sp5C->unk156C < sp5C->unk450) {
-        channel = &sp5C->channels[sp4C];
-        if (sp5C->unk1586 != 0) {
-          sp5C->unk1586--;
+      if (reader->unk156C < reader->unk450) {
+        channel = &reader->channels[sp4C];
+        if (reader->unk1586 != 0) {
+          reader->unk1586--;
         } else {
-          sp57 = sp5C->unk1468[(u8) (sp5C->unk1568 & 0xFF)];
-          sp5C->unk1568++;
-          sp5C->unk156C++;
-          if (sp5C->unk1598 == 0) {
-            sp5C->unk1598 = 1;
-          }
+          sp57 = reader->unk1468[(u8) (reader->unk1568 & 0xFF)];
+          reader->unk1568++;
+          reader->unk156C++;
 
           if (sp57 & 0x80) {
-            sp5C->unk1586 = sp57 & 0x7F;
+            reader->unk1586 = sp57 & 0x7F;
           } else {
             if (sp57 & 0x40) {  // set pitch
-              sp48 = sp5C->unk1468[(u8) (sp5C->unk1568 & 0xFF)] + (sp5C->unk1468[(u8) ((sp5C->unk1568 + 1) & 0xFF)] << 8);
-              sp5C->unk156C += 2;
-              sp5C->unk1568 += 2;
+              sp48 = reader->unk1468[(u8) (reader->unk1568 & 0xFF)] + (reader->unk1468[(u8) ((reader->unk1568 + 1) & 0xFF)] << 8);
+              reader->unk156C += 2;
+              reader->unk1568 += 2;
               sp48 &= 0xFFFF;
               sp43 = sp48 >> 14;
               sp48 &= 0x3FFF;
               sp48 = D_800D3B40[sp43] + (sp48 << sp43);
-              //channel->pitch = Dcm_SetPitch(sp48);
 
               printf("FREQ=%d ", sp48);
-              channel_note[sp4C].freq = sp48;
+              channel->freq = sp48;
             }
 
             if (sp57 & 0x20) {  // set vol
-              channel->unk28 = sp5C->unk1468[(u8) (sp5C->unk1568 & 0xFF)];
-              sp5C->unk1568++;
-              sp5C->unk156C++;
-              channel->unk28 &= 0xFF;
+              channel->vol = reader->unk1468[(u8) (reader->unk1568 & 0xFF)];
+              printf("VOL=%d ", channel->vol);
+              reader->unk1568++;
+              reader->unk156C++;
 
-              channel_note[sp4C].vol = channel->unk28;
-              printf("VOL=%d ", channel_note[sp4C].vol);
-
-              if (channel->unk28 == 0) {
-                channel->unk28 = 1;
-              }
-              channel->vol = (u16) ((sqrtf(channel->unk28) * sp5C->unk157C) / 16);
-
-              if (channel_note[sp4C].vol >= 255) {
-                channel_note[sp4C].volume = 64;
-              } else if (channel_note[sp4C].vol == 0) {
-                channel_note[sp4C].volume = 0;
+              if (channel->vol >= 255) {
+                channel->volume = 64;
+              } else if (channel->vol == 0) {
+                // possible NOTE_OFF (note = 97)
+                channel->volume = 0;
               } else {
-                channel_note[sp4C].volume = channel_note[sp4C].vol >> 2;
+                channel->volume = channel->vol >> 2;
               }
             }
 
             if (sp57 & 0x10) {  // set pan
-              channel->pan = sp5C->unk1468[(u8) (sp5C->unk1568 & 0xFF)] >> 1;
+              channel->pan = reader->unk1468[(u8) (reader->unk1568 & 0xFF)];
+              printf("PAN=%d ", channel->pan);
 
-              channel_note[sp4C].pan = sp5C->unk1468[(u8) (sp5C->unk1568 & 0xFF)];
-              printf("PAN=%d ", channel_note[sp4C].pan);
-
-              sp5C->unk1568++;
-              sp5C->unk156C++;
+              reader->unk1568++;
+              reader->unk156C++;
             }
 
             if (sp57 & 0x08) {  // set instrument (sample_num + 1)
-              sp56 = sp5C->unk1468[(u8) (sp5C->unk1568 & 0xFF)];
-              sp5C->unk1568++;
-              sp5C->unk156C++;
-              channel->wt = &sp5C->unk438->wt[sp56];
-              sp5C->unk428[sp4C] = sp56;
+              sp56 = reader->unk1468[(u8) (reader->unk1568 & 0xFF)];
+              reader->unk1568++;
+              reader->unk156C++;
 
-              channel_note[sp4C].sample_num = sp56;
-              printf("INST=%d ", channel_note[sp4C].sample_num + 1);
-              channel_note[sp4C].sample_rate = dcm_lut[song_no].sample_rates[sp56];
+              channel->sample_num = sp56;
+              printf("INST=%d ", channel->sample_num + 1);
+              channel->sample_rate = dcm_lut[song_no].sample_rates[sp56];
             }
 
             if (sp57 & 0x04) {  // set sample offset
-              sp44 = sp5C->unk1468[(u8) (sp5C->unk1568 & 0xFF)] << 8;
-              sp5C->unk1568++;
-              sp5C->unk156C++;
-              // (bug?) Does this ever get reset back?
-              //channel->wt->base = sp5C->unk438->wt_base[sp5C->unk428[sp4C]] + sp44;
-              //channel->wt->len = sp5C->unk438->wt_len[sp5C->unk428[sp4C]] - (channel->wt->base - sp5C->unk438->wt_base[sp5C->unk428[sp4C]]);
+              sp44 = reader->unk1468[(u8) (reader->unk1568 & 0xFF)] << 8;
+              reader->unk1568++;
+              reader->unk156C++;
               printf("SAMPLE_OFFSET=%04hX ", sp44);
             }
 
             if (sp57 & 0x02) {  // start voice
-              if (sp57 & 0x04) {
-                if (sp5C->alGlobals != NULL) {
-                  if (channel->wt != NULL) {
-                    //alSynStartVoiceParams(&sp5C->alGlobals->drvr, &channel->v, channel->wt, channel->pitch, channel->vol, channel->pan, 0, 100);
-                  }
-                }
-              } else {
-                //alSynStartVoiceParams(&sp5C->alGlobals->drvr, &channel->v, channel->wt, channel->pitch, channel->vol, channel->pan, 0, 1);
-              }
-              channel->state = 1;
-
               if (subrow_no == 0) {
-                u8 pattern_note = lroundf(12 * log((float) channel_note[sp4C].freq / channel_note[sp4C].sample_rate) / log(2));
+                u8 pattern_note = lroundf(12 * log((float) channel->freq / channel->sample_rate) / log(2));
                 xm_pkt[sp4C].note = 49 + pattern_note;
-                xm_pkt[sp4C].instrument = channel_note[sp4C].sample_num + 1;
-                xm_pkt[sp4C].volume = channel_note[sp4C].volume + 16;
+                xm_pkt[sp4C].instrument = channel->sample_num + 1;
+                xm_pkt[sp4C].volume = channel->volume + 16;
                 xm_pkt[sp4C].flags |= 0x7;
-                if (channel_note[sp4C].pan != 128) {
+                if (channel->pan != 128) {
                   xm_pkt[sp4C].effect = 0x8;
-                  xm_pkt[sp4C].effect_param = channel_note[sp4C].pan;
+                  xm_pkt[sp4C].effect_param = channel->pan;
                   xm_pkt[sp4C].flags |= 0x18;
                 }
               } else {
                 printf("SUB_ROW=%d ", subrow_no);
               }
-              printf("START_VOICE(inst=%d, freq=%d, volume=%d, pan=%d) ", channel_note[sp4C].sample_num + 1, channel_note[sp4C].freq, channel_note[sp4C].volume, channel_note[sp4C].pan);
-            }
-
-            if ((channel->state != 0) && (sp57 & 0x40) && !(sp57 & 0x02)) {
-              //alSynSetPitch(&sp5C->alGlobals->drvr, &channel->v, channel->pitch);
-            }
-
-            if ((channel->state != 0) && (sp57 & 0x20) && !(sp57 & 0x02)) {
-              channel->vol = (u16) ((sqrtf(channel->unk28) * sp5C->unk157C) / 16);
-              if (sp57 & 0x04) {
-                //alSynSetVol(&sp5C->alGlobals->drvr, &channel->v, channel->vol, 100);
-              } else {
-                //alSynSetVol(&sp5C->alGlobals->drvr, &channel->v, channel->vol, 1);
-              }
-            }
-
-            if ((channel->state != 0) && (sp57 & 0x10) && !(sp57 & 0x02)) {
-              //alSynSetPan(&sp5C->alGlobals->drvr, &channel->v, channel->pan);
+              printf("START_VOICE(inst=%d, freq=%d, volume=%d, pan=%d) ", channel->sample_num + 1, channel->freq, channel->volume, channel->pan);
             }
 
             if (sp57 & 0x01) {  // set bpm
-              sp57 = sp5C->unk1468[(u8) (sp5C->unk1568 & 0xFF)];
-              sp5C->unk1568++;
-              sp5C->unk156C++;
+              sp57 = reader->unk1468[(u8) (reader->unk1568 & 0xFF)];
+              reader->unk1568++;
+              reader->unk156C++;
               if (sp57 & 0x40) {
                 if (bpm != 0) {
                   printf("\nbpm already set\n");
                   exit(3);
                 }
-                bpm = sp5C->unk1468[(u8) (sp5C->unk1568 & 0xFF)];
+                bpm = reader->unk1468[(u8) (reader->unk1568 & 0xFF)];
                 printf("BPM=%d ", bpm);
 
-                // 125 (default bpm) * 1000000 (microtime) / (bpm * 50 (hz))
-                sp5C->unk1578 = 125 * 1000000 / (sp5C->unk1468[(u8) (sp5C->unk1568 & 0xFF)] * 50);
-                sp5C->unk1568++;
-                sp5C->unk156C++;
+                reader->unk1568++;
+                reader->unk156C++;
               }
               if (sp57 & 0x20) {
-                sp5C->unk1568++;
-                sp5C->unk156C++;
+                reader->unk1568++;
+                reader->unk156C++;
               }
             }
           }
@@ -984,7 +895,7 @@ static ALMicroTime Dcm_VoiceHandler(void *arg0) {
         int bitcnt = 0;
 
         for (int i = 0; i < 5; i++) {
-          if ((xm_pkt[sp4C].flags >> i) & 1 == 1) {
+          if ((xm_pkt[sp4C].flags >> i) & 0x1) {
             bitcnt++;
           }
         }
@@ -993,7 +904,7 @@ static ALMicroTime Dcm_VoiceHandler(void *arg0) {
         *p_xm_pkt++ = xm_pkt[sp4C];
       }
 
-      if (sp4C == sp5C->unk440 - 1) {
+      if (sp4C == reader->unk440 - 1) {
         subrow_no++;
         if (subrow_no == 6) {
           subrow_no = 0;
@@ -1006,26 +917,20 @@ static ALMicroTime Dcm_VoiceHandler(void *arg0) {
       }
     }
   }
-
-  return sp5C->unk1578;
 }
 
 
-static void Audio_InitAudio(void) {
-  D_80128DD8 = 0x4000;  // volume (set in the middle -- half of max)
+static void audio_init(void) {
+  void *dcm_buf;
 
-  Dcm_Init(&g_songPlayer, &D_80123A18, D_80124678, 16, D_80128DD8);
+  dcm_song_init(&g_songReader);
+  g_songReader.heap = malloc(0xBCF20);
 
-  g_songPlayer.unk1590 = malloc(0xBCF20);
+  dcm_buf = malloc(get_dcm_size(song_no));
+  load_dcm(dcm_buf, song_no);
 
-  D_80126790 = malloc(get_dcm_size(song_no));
-  load_dcm(D_80126790, song_no);
-
-  Audio2_80086138_largeliner_channels(&g_songPlayer, D_80126790, 1);
-  g_songPlayer.unk1580 = song_no;
-  g_songPlayer.unk1582 = song_no;
-
-  free(D_80126790);
+  Audio2_80086138_largeliner_channels(&g_songReader, dcm_buf);
+  free(dcm_buf);
 
   // TODO: init sfx
 
@@ -1043,19 +948,16 @@ int main(int argc, char **argv) {
   }
   printf("Song name: %s\n", dcm_lut[song_no].name);
 
-  ALMicroTime micro_time;
+  audio_init();
 
-  Audio_InitAudio();
-
-  g_songPlayer.unk454 = 1;
-  while (g_songPlayer.unk454 != 0) {
-    micro_time = Dcm_VoiceHandler(&g_songPlayer);
-    //printf("micro_time = %d\n", micro_time);
+  g_songReader.unk454 = 1;
+  while (g_songReader.unk454 != 0) {
+    dcm_read_song(&g_songReader);
   }
 
   u16 song_length = reverse_xm_patterns(&xm_patterns);
   char pattern_order[256] = { 0 };
-  u16 ndupes = dedupe_xm_patterns(xm_patterns, g_songPlayer.unk440, pattern_order);
+  u16 ndupes = dedupe_xm_patterns(xm_patterns, g_songReader.unk440, pattern_order);
   printf("\nndupes = %d\n", ndupes);
   u16 npatterns = song_length - ndupes;
   printf("npatterns = %d\n", npatterns);
@@ -1078,9 +980,9 @@ int main(int argc, char **argv) {
   fwrite_le4(20 + 256, xm_fp);  // Header size
   fwrite_le2(song_length, xm_fp);  // Song length
   fwrite_le2(0, xm_fp);  // Restart position
-  fwrite_le2(g_songPlayer.unk440, xm_fp);  // Channels
+  fwrite_le2(g_songReader.unk440, xm_fp);  // Channels
   fwrite_le2(npatterns, xm_fp);  // Patterns
-  fwrite_le2(g_songPlayer.unk418.num_samples, xm_fp);  // Instruments
+  fwrite_le2(g_songReader.unk418.num_samples, xm_fp);  // Instruments
   fwrite_le2(1, xm_fp);  // Flags
   fwrite_le2(6, xm_fp);  // Tempo
   fwrite_le2(bpm, xm_fp);  // BPM
@@ -1091,13 +993,13 @@ int main(int argc, char **argv) {
   printf("\n\n");
   fwrite(pattern_order, 1, 256, xm_fp);
 
-  fwrite_xm_patterns(xm_patterns, xm_fp, g_songPlayer.unk440);
+  fwrite_xm_patterns(xm_patterns, xm_fp, g_songReader.unk440);
   free_xm_patterns(&xm_patterns);
 
-  fwrite_xm_samples(g_songPlayer.unk18, g_songPlayer.unk418.num_samples, xm_fp);
+  fwrite_xm_samples(g_songReader.unk18, g_songReader.unk418.num_samples, xm_fp);
 
   fclose(xm_fp);
 
-  free(g_songPlayer.unk1590);
+  free(g_songReader.heap);
   return 0;
 }

@@ -1,17 +1,11 @@
 #include "common.h"
 
-UnkStruct_96 D_80123A18;
-Channel D_80124678[16];
-void *D_80126790;
-u16 D_80128DD8;
-
-static s32 D_800D3B3C = 0;
 /* static */ s32 D_800D3B40[4] = { 0, 0x4000, 0xC000, 0x1C000 };
 
 static void print_DcmHeader(DcmHeader *);
 static void print_Sample(Sample *);
-//static void Audio2_800874ac_sevenliner(SongPlayer *);
-static void Audio2_8008756c_eightliner(SongPlayer *);
+//static void Audio2_800874ac_sevenliner(SongReader *);
+static void Audio2_8008756c_eightliner(SongReader *);
 static void Audio2_8008bf58_eightliner(u8 *, DcmHeader *);
 static void Audio2_8008c014_tenliner(u8 *, Sample *);
 static s16 Audio2_8008c0e0_oneliner_arg0_math(u8 *);
@@ -34,95 +28,59 @@ static void print_Sample(Sample *sample) {
   printf("id: %d\n", sample->id);
 }
 
-void Dcm_Init(SongPlayer *arg0, UnkStruct_96 *arg1, Channel *channels, u8 arg3, s16 arg4) {
-  arg0->unk454 = 0;
-  arg0->unk1578 = 20000;
-  arg0->unk1570 = FALSE;
-  arg0->unk1571 = 1;
-  arg0->unk1587 = FALSE;
-  arg0->unk158C = FALSE;
-  arg0->unk1572 = 0;
-  arg0->unk157E = 0;
-  arg0->unk1580 = 0;
-  arg0->unk1585 = 0;
-  arg0->unk1582 = 0;
-  arg0->unk1586 = 0;
-  arg0->unk157C = arg4;  // music_level (volume)
-  arg0->unk158A = 0x7FFF;  // max volume
-  arg0->unk1588 = 0;
-  arg0->unk1598 = 0;
-  arg0->unk1599 = FALSE;
-  arg0->unk438 = arg1;
-  arg0->channels = channels;
+void dcm_song_init(SongReader *reader) {
+  reader->unk454 = 0;
+  reader->unk1586 = 0;
 }
 
-void Audio2_80086138_largeliner_channels(SongPlayer *player, u8 *buf, u8 arg3) {
+void Audio2_80086138_largeliner_channels(SongReader *reader, u8 *buf) {
   s32 i;
   s8 *sp38;
   u8 *sp34;
-  Channel *channel;
 
-  D_800D3B3C = 0;
-
-  if (arg3 == 2) {
-    for (i = 0; i < 16; i++) {
-      channel = &player->channels[i];
-      if (channel->state != 0) {
-        channel->state = 0;
-      }
-    }
-  }
-
-  Audio2_8008bf58_eightliner(buf, &player->unk418);
-  print_DcmHeader(&player->unk418);
+  Audio2_8008bf58_eightliner(buf, &reader->unk418);
+  print_DcmHeader(&reader->unk418);
   buf += 14;
-  player->unk440 = player->unk418.num_channels;
-  player->unk1574 = player->unk1590;
-  player->unk444 = player->unk1574;
-  player->unk448 = player->unk444;
-  player->unk1574 += (player->unk418.stream_sz + 0xF) & ~0xF;
-  D_800D3B3C += (player->unk418.stream_sz + 0xF) & ~0xF;
-  player->unk418.stream_sz -= 4;
-  sp38 = (s8 *) (buf + (player->unk418.num_samples * 16));
-  player->unk450 = (u8)sp38[3] + ((u8)sp38[2] << 8) + ((u8)sp38[1] << 16) + ((u8)sp38[0] << 24);
-  printf("unk450: %d 0x%X\n", player->unk450, player->unk450);
+  reader->unk440 = reader->unk418.num_channels;
+  reader->unk444 = reader->heap;
+  reader->unk418.stream_sz -= 4;
+  sp38 = (s8 *) (buf + (reader->unk418.num_samples * 16));
+  reader->unk450 = (u8)sp38[3] + ((u8)sp38[2] << 8) + ((u8)sp38[1] << 16) + ((u8)sp38[0] << 24);
+  printf("unk450: %d 0x%X\n", reader->unk450, reader->unk450);
   sp38 += 4;
-  sp34 = player->unk444;
-  i = player->unk418.stream_sz;
+  sp34 = reader->unk444;
+  i = reader->unk418.stream_sz;
   printf("Stream Size: %d 0x%X bytes\n", i, i);
   while (i--) {
     *sp34++ = *sp38++;
   }
-  func_8008EFA0(player->unk444, &player->unk458);
-  Audio2_8008756c_eightliner(player);
-  for (i = 0; i < player->unk418.num_samples; i++) {
-    Audio2_8008c014_tenliner(buf, &player->unk18[i]);
-    print_Sample(&player->unk18[i]);
+  func_8008EFA0(reader->unk444, &reader->unk458);
+  Audio2_8008756c_eightliner(reader);
+  for (i = 0; i < reader->unk418.num_samples; i++) {
+    Audio2_8008c014_tenliner(buf, &reader->unk18[i]);
+    print_Sample(&reader->unk18[i]);
     buf += 16;
   }
-  player->unk1572 = 0;
-  player->unk1570 = TRUE;
-  player->unk1571 = 1;
 }
 
-/* static */ void Audio2_800874ac_sevenliner(SongPlayer *arg0) {
-  arg0->unk1568 = arg0->unk1568 & 0xFF;
-  arg0->unk156A = arg0->unk156A & 0xFF;
+/* static */ void Audio2_800874ac_sevenliner(SongReader *reader) {
+  reader->unk1568 = reader->unk1568 & 0xFF;
+  reader->unk156A = reader->unk156A & 0xFF;
 
-  while ((u8)arg0->unk156A != (u8)arg0->unk1568) {
-    arg0->unk1468[(u8)arg0->unk156A] = func_8008F0D0(&arg0->unk458);
-    arg0->unk156A = (arg0->unk156A + 1) & 0xFF;
+  while ((u8)reader->unk156A != (u8)reader->unk1568) {
+    reader->unk1468[(u8)reader->unk156A] = func_8008F0D0(&reader->unk458);
+    reader->unk156A = (reader->unk156A + 1) & 0xFF;
   }
 }
 
-static void Audio2_8008756c_eightliner(SongPlayer *arg0) {
+static void Audio2_8008756c_eightliner(SongReader *reader) {
   s32 i;
 
-  arg0->unk1568 = 0;
-  arg0->unk156A = 0;
-  arg0->unk156C = 0;
+  reader->unk1568 = 0;
+  reader->unk156A = 0;
+  reader->unk156C = 0;
   for (i = 0; i < 0x100; i++) {
-    arg0->unk1468[(u8)i] = func_8008F0D0(&arg0->unk458);
+    reader->unk1468[(u8)i] = func_8008F0D0(&reader->unk458);
   }
 }
 
