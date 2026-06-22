@@ -1,125 +1,11 @@
 #include "common.h"
 
-typedef s32 ALMicroTime;
-
-typedef struct {
-} ALPlayer;
-
-typedef struct {
-} ALGlobals;
-
-typedef struct {
-} ALWaveTable;
-
-typedef struct {
-} ALRawLoop;
-
-typedef struct {
-} ALVoice;
-
-
-#define AL_RAW16_WAVE 1
-
-// raw, signed 8-bit PCM audio data
-#define H2O_RAW8_WAVE 2
-
-typedef struct {
-  /* 0x0 */ s32   dcm1;  // 'DCM1' as int
-  /* 0x4 */ u8    num_channels;
-  /* 0x5 */ u8    num_samples;
-  /* 0x8 */ s32   stream_sz;
-  /* 0xC */ s32   unkC;  // 0
-} DcmHeader; // 0x10 bytes
-
-typedef struct {
-  /* 0x0 */ u32   smplen;
-  /* 0x4 */ u32   loopBegin;
-  /* 0x8 */ u32   loopEnd;
-  /* 0xC */ u16   flags;
-  /* 0xE */ u16   id;
-} Sample; // 0x10 bytes
-
-typedef struct {
-  /* 0x0   */ ALWaveTable   wt[66];
-  /* 0x528 */ u8           *wt_base[66];
-  /* 0x630 */ s32           wt_len[66];
-  /* 0x738 */ u32           loopBegin[66];
-  /* 0x840 */ u32           loopEnd[66];
-  /* 0x948 */ ALRawLoop     rawLoop[66];
-} UnkStruct_96; // 0xC60 bytes
-
-typedef struct {
-  /* 0x0  */ ALVoice       v;
-  /* 0x1C */ ALWaveTable  *wt;
-  /* 0x20 */ f32           pitch;
-  /* 0x24 */ s16           vol;
-  /* 0x26 */ s8            pan;
-  /* 0x27 */ u8            state;
-  /* 0x28 */ s16           unk28;  // vol index
-} Channel; // 0x2C bytes
-
-typedef struct {
-  /* 0x0    */ ALPlayer       node;
-  /* 0x14   */ ALGlobals     *alGlobals;
-  /* 0x18   */ Sample         unk18[64];
-  /* 0x418  */ DcmHeader      unk418;
-  /* 0x428  */ u8             unk428[16];
-  /* 0x438  */ UnkStruct_96  *unk438;
-  /* 0x43C  */ Channel       *channels;
-  /* 0x440  */ s32            unk440;  // number of channels
-  /* 0x444  */ u8            *unk444;  // stream
-  /* 0x448  */ u8            *unk448;
-  /* 0x44C  */ u8            *unk44C;  // stream
-  /* 0x450  */ u32            unk450;
-  /* 0x454  */ u8             unk454;
-  /* 0x458  */ UnkStruct_85   unk458;
-  /* 0x1468 */ u8             unk1468[256];
-  /* 0x1568 */ u16            unk1568;
-  /* 0x156A */ u16            unk156A;
-  /* 0x156C */ u32            unk156C;
-  /* 0x1570 */ u8             unk1570;  // boolean
-  /* 0x1571 */ u8             unk1571;
-  /* 0x1572 */ u8             unk1572;
-  /* 0x1574 */ u8            *unk1574;
-  /* 0x1578 */ s32            unk1578;
-  /* 0x157C */ s16            unk157C;  // music_level (volume)
-  /* 0x157E */ s16            unk157E;
-  /* 0x1580 */ u16            unk1580;  // song num
-  /* 0x1582 */ u16            unk1582;  // song num
-  /* 0x1584 */ u8             unk1584;  // boolean
-  /* 0x1585 */ u8             unk1585;
-  /* 0x1586 */ u8             unk1586;
-  /* 0x1587 */ u8             unk1587;  // boolean
-  /* 0x1588 */ s16            unk1588;
-  /* 0x158A */ s16            unk158A;
-  /* 0x158C */ u8             unk158C;  // boolean
-  /* 0x158D */ s8             unk158D;  // pan_level
-  /* 0x158E */ u8             unk158E;  // boolean
-  /* 0x1590 */ u8            *unk1590;
-  /* 0x1594 */ u8             pad1594[0x4];
-  /* 0x1598 */ u8             unk1598;
-  /* 0x1599 */ u8             unk1599;  // boolean
-  /* 0x159A */ u8             pad159A[0x6];
-} SongPlayer; // 0x15A0 bytes
-
 SongPlayer g_songPlayer;
-UnkStruct_96 D_80123A18;
-Channel D_80124678[16];
-void *D_80126790;
-u16 D_80128DD8;
 
-static s32 D_800D3B3C = 0;
-static s32 D_800D3B40[4] = { 0, 0x4000, 0xC000, 0x1C000 };
 
-static void Audio2_800874ac_sevenliner(SongPlayer *);
-static void Audio2_8008756c_eightliner(SongPlayer *);
 static ALMicroTime Dcm_VoiceHandler(void *);
-static f32 Dcm_SetPitch(u16);
-static void Audio2_8008bf58_eightliner(u8 *, DcmHeader *);
-static void Audio2_8008c014_tenliner(u8 *, Sample *);
-static s16 Audio2_8008c0e0_oneliner_arg0_math(u8 *);
-static s32 Audio2_8008c104_oneliner_arg0_math_2(u8 *);
-static s32 Audio2_8008c130_oneliner_arg0_math_3(u8 *);
+
+static void Audio_InitAudio(void);
 
 
 #define NROWS 64
@@ -300,21 +186,6 @@ void fwrite_xm_patterns(XmPattern *head, FILE *fp, u8 nchannels) {
 
     current = current->next;
   }
-}
-
-void print_DcmHeader(DcmHeader *dcmHeader) {
-  printf("dcm1: %c%c%c%c\n", dcmHeader->dcm1 >> 24, dcmHeader->dcm1 >> 16, dcmHeader->dcm1 >> 8, dcmHeader->dcm1);
-  printf("num_channels: %d\n", dcmHeader->num_channels);
-  printf("num_samples: %d\n", dcmHeader->num_samples);
-  printf("stream_sz: %d 0x%X\n", dcmHeader->stream_sz, dcmHeader->stream_sz);
-}
-
-void print_Sample(Sample *sample) {
-  printf("smplen: %d\n", sample->smplen);
-  printf("loopBegin: %d\n", sample->loopBegin);
-  printf("loopEnd: %d\n", sample->loopEnd);
-  printf("flags: %04b\n", sample->flags);
-  printf("id: %d\n", sample->id);
 }
 
 u32 title_sample_rates[] = { 13100, 7600, 11025, 7600, 8363, 13100, 8363, 8363, 8363, 8363, 8363, 8363, 8363, 8363, 8363, 8363, 36000, 22050, 22050, 22050, 22050 };
@@ -878,338 +749,6 @@ void fwrite_xm_samples(Sample *samples, u8 num_samples, FILE *fp) {
 }
 
 
-void Dcm_Init(SongPlayer *arg0, UnkStruct_96 *arg1, Channel *channels, u8 arg3, s16 arg4, u8 arg5) {
-  s32 i;
-  //ALVoiceConfig vc;
-
-  arg0->unk454 = 0;
-  //arg0->alGlobals = alGlobals;
-  arg0->unk1578 = 20000;
-  arg0->unk1570 = FALSE;
-  arg0->unk1571 = 1;
-  arg0->unk1587 = FALSE;
-  arg0->unk158C = FALSE;
-  arg0->unk1584 = FALSE;
-  arg0->unk1572 = 0;
-  arg0->unk157E = 0;
-  arg0->unk1580 = 0;
-  arg0->unk1585 = 0;
-  arg0->unk1582 = 0;
-  arg0->unk1586 = 0;
-  arg0->unk157C = arg4;  // music_level (volume)
-  arg0->unk158A = 0x7FFF;  // max volume
-  arg0->unk1588 = 0;
-  arg0->unk1598 = 0;
-  arg0->unk1599 = FALSE;
-  arg0->unk438 = arg1;
-  arg0->channels = channels;
-  arg0->unk158E = arg5;
-
-  /*
-  arg0->node.next = NULL;
-  arg0->node.handler = Dcm_VoiceHandler;
-  arg0->node.clientData = arg0;
-  arg0->node.callTime = 0;
-
-  alSynAddPlayer(&alGlobals->drvr, &arg0->node);
-
-  vc.priority = 10;
-  vc.fxBus = 0;
-  vc.unityPitch = 0;
-  */
-
-  for (i = 0; i < 66; i++) {
-    //arg0->unk438->wt[i].base = NULL;
-  }
-
-  if (arg3 != 0) {
-    for (i = 0; i < arg3; i++) {
-      //alSynAllocVoice(&arg0->alGlobals->drvr, &arg0->channels[i].v, &vc);
-    }
-  }
-
-  //rmonPrintf("voices Init\n");
-}
-
-void Audio2_80086138_largeliner_channels(SongPlayer *player, u8 *buf, u8 arg3) {
-  s32 i;
-  s8 *sp38;
-  u8 *sp34;
-  Channel *channel;
-
-  D_800D3B3C = 0;
-
-  if (arg3 == 2) {
-    for (i = 0; i < 16; i++) {
-      channel = &player->channels[i];
-      if (channel->state != 0) {
-        channel->state = 0;
-        //alSynStopVoice(&player->alGlobals->drvr, &channel->v);
-      }
-    }
-  }
-
-  Audio2_8008bf58_eightliner(buf, &player->unk418);
-  print_DcmHeader(&player->unk418);
-  buf += 14;
-  player->unk440 = player->unk418.num_channels;
-  player->unk1574 = player->unk1590;
-  player->unk444 = player->unk1574;
-  player->unk448 = player->unk444;
-  player->unk1574 += (player->unk418.stream_sz + 0xF) & ~0xF;
-  D_800D3B3C += (player->unk418.stream_sz + 0xF) & ~0xF;
-  player->unk418.stream_sz -= 4;
-  sp38 = (s8 *) (buf + (player->unk418.num_samples * 16));
-  player->unk450 = (u8)sp38[3] + ((u8)sp38[2] << 8) + ((u8)sp38[1] << 16) + ((u8)sp38[0] << 24);
-  printf("unk450: %d 0x%X\n", player->unk450, player->unk450);
-  sp38 += 4;
-  sp34 = player->unk444;
-  i = player->unk418.stream_sz;
-  printf("Stream Size: %d 0x%X bytes\n", i, i);
-  //printf("Stream:");
-  while (i--) {
-    //printf(" %02hhX", *sp38);
-    *sp34++ = *sp38++;
-  }
-  printf("\n");
-  func_8008EFA0(player->unk444, &player->unk458);
-  Audio2_8008756c_eightliner(player);
-  for (i = 0; i < player->unk418.num_samples; i++) {
-    Audio2_8008c014_tenliner(buf, &player->unk18[i]);
-    print_Sample(&player->unk18[i]);
-    buf += 16;
-  }
-  player->unk1572 = 0;
-  player->unk1570 = TRUE;
-  player->unk1571 = 1;
-}
-
-void Audio2_AllocDcmScratch8(SongPlayer *arg0) {
-  s32 sp54;
-  s32 sp50;
-  s8 *sp4C;
-  s8 *sp48;
-  //s32 sp44;
-  s16 *sp40;
-  s16 *sp3C;
-  u32 sp38;
-  void *sp34;
-  void *sp30;
-  u8 sp2F;
-  u8 sp2E;
-  u8 sp2D;
-  u8 sp2C;
-
-  arg0->unk1584 = TRUE;
-
-  /*
-  if (arg0->unk1570) {
-    if (arg0->unk1571 != 1) {
-      arg0->unk1571--;
-      return;
-    }
-
-    arg0->unk1571 = 1;
-    //sp44 = LZO_BUF;
-    sp54 = arg0->unk1572;
-
-    if (arg0->unk18[sp54].flags & 1) {  // 16-bit
-      sp34 = malloc((arg0->unk18[sp54].smplen * 2) + 16*2);
-      printf("\x1b[1;41m%s Allocated:  %x %d bytes Handle: %x\x1b[0m\n", "AllocDcm Scratch16", (arg0->unk18[sp54].smplen * 2) + 16*2, (arg0->unk18[sp54].smplen * 2) + 16*2, sp34);
-
-      load_sample(sp34, arg0->unk18[sp54].id);
-
-      arg0->unk438->wt[sp54].base = arg0->unk1574;
-      arg0->unk438->wt_base[sp54] = arg0->unk438->wt[sp54].base;
-
-      if (arg0->unk18[sp54].flags & 4) {  // loop
-        arg0->unk1574 += ((arg0->unk18[sp54].smplen * 2) + 16*2 + 0xF) & ~0xF;
-        D_800D3B3C += ((arg0->unk18[sp54].smplen * 2) + 16*2 + 0xF) & ~0xF;
-      } else {  // no loop
-        arg0->unk1574 += (arg0->unk18[sp54].smplen + 16*2 + 0xF) & ~0xF;
-        D_800D3B3C += (arg0->unk18[sp54].smplen + 16*2 + 0xF) & ~0xF;
-      }
-
-      if (arg0->unk18[sp54].flags & 4) {  // loop
-        arg0->unk438->wt[sp54].len = arg0->unk18[sp54].smplen * 2;
-        arg0->unk438->wt_len[sp54] = arg0->unk18[sp54].smplen * 2;
-        arg0->unk438->wt[sp54].type = AL_RAW16_WAVE;
-        arg0->unk438->wt[sp54].flags = 0xFF;
-        sp4C = sp34;
-        sp3C = (s16 *) arg0->unk438->wt[sp54].base;
-        sp38 = arg0->unk18[sp54].smplen;
-
-        while (sp38--) {
-          *sp3C++ = ((sp4C[1] << 8) & 0xFF00) + (sp4C[0] & 0xFF);
-          sp4C += 2;
-        }
-
-        if (arg0->unk18[sp54].flags & 4) {  // loop
-          sp3C = (s16 *) arg0->unk438->wt[sp54].base;
-          sp40 = (s16 *) arg0->unk438->wt[sp54].base;
-
-          if (arg0->unk18[sp54].flags & 8) {  // bidi-loop
-            for (sp50 = 0; sp50 < 16; sp50++) {
-              sp3C[arg0->unk18[sp54].loopEnd + sp50] = sp40[(arg0->unk18[sp54].loopBegin - 1) - sp50];
-            }
-          } else {  // no bidi-loop
-            for (sp50 = 0; sp50 < 16; sp50++) {
-              sp3C[arg0->unk18[sp54].loopEnd + sp50] = sp40[arg0->unk18[sp54].loopBegin + sp50];
-            }
-          }
-        }
-      } else {  // no loop
-        arg0->unk438->wt[sp54].len = arg0->unk18[sp54].smplen;
-        arg0->unk438->wt_len[sp54] = arg0->unk18[sp54].smplen;
-        arg0->unk438->wt[sp54].type = H2O_RAW8_WAVE;
-        arg0->unk438->wt[sp54].flags = 0xFF;
-        sp4C = sp34;
-        sp48 = (s8 *) arg0->unk438->wt[sp54].base;
-        sp38 = arg0->unk18[sp54].smplen;
-
-        while (sp38--) {
-          *sp48++ = Audio2_8008c0e0_oneliner_arg0_math((u8 *)sp4C) >> 8;
-          sp4C += 2;
-        }
-
-        sp48 = (s8 *) arg0->unk438->wt[sp54].base;
-        sp2E = sp48[arg0->unk18[sp54].smplen] >> 4;
-
-        for (sp50 = 0, sp2F = 0; sp50 < 16; sp50++) {
-          sp48[sp50 + arg0->unk18[sp54].smplen] = sp48[arg0->unk18[sp54].smplen] - sp2F;
-          sp2F += sp2E;
-        }
-      }
-      printf("\x1b[1;45m%s Released Handle: %x\x1b[0m\n", "Allocdcm Scratch16", sp34);
-      free(sp34);
-    } else {  // 8-bit
-      sp30 = malloc(arg0->unk18[sp54].smplen + 16*2);
-      printf("\x1b[1;41m%s Allocated:  %x %d bytes Handle: %x\x1b[0m\n", "AllocDcm Scratch8", arg0->unk18[sp54].smplen + 16*2, arg0->unk18[sp54].smplen + 16*2, sp30);
-
-      load_sample(sp30, arg0->unk18[sp54].id);
-
-      arg0->unk438->wt[sp54].base = arg0->unk1574;
-      arg0->unk438->wt_base[sp54] = arg0->unk438->wt[sp54].base;
-
-      if (arg0->unk18[sp54].flags & 4) {  // loop
-        arg0->unk1574 += ((arg0->unk18[sp54].smplen * 2) + 16*2 + 0xF) & ~0xF;
-        D_800D3B3C += ((arg0->unk18[sp54].smplen * 2) + 16*2 + 0xF) & ~0xF;
-      } else {  // no loop
-        arg0->unk1574 += (arg0->unk18[sp54].smplen + 16*2 + 0xF) & ~0xF;
-        D_800D3B3C += (arg0->unk18[sp54].smplen + 16*2 + 0xF) & ~0xF;
-      }
-
-      if (arg0->unk18[sp54].flags & 4) {  // loop
-        arg0->unk438->wt[sp54].len = arg0->unk18[sp54].smplen * 2;
-        arg0->unk438->wt[sp54].type = AL_RAW16_WAVE;
-        arg0->unk438->wt[sp54].flags = 0xFF;
-        arg0->unk438->wt_len[sp54] = arg0->unk18[sp54].smplen * 2;
-        sp4C = sp30;
-        sp3C = (s16 *) arg0->unk438->wt[sp54].base;
-        sp38 = arg0->unk18[sp54].smplen;
-
-        while (sp38--) {
-          *sp3C++ = *sp4C++ << 8;
-        }
-
-        sp3C = (s16 *) arg0->unk438->wt[sp54].base;
-        sp40 = (s16 *) arg0->unk438->wt[sp54].base;
-
-        if (arg0->unk18[sp54].flags & 8) {  // bidi-loop
-          for (sp50 = 0; sp50 < 16; sp50++) {
-            sp3C[arg0->unk18[sp54].loopEnd + sp50] = sp40[(arg0->unk18[sp54].loopBegin - 1) - sp50];
-          }
-        } else {  // no bidi-loop
-          for (sp50 = 0; sp50 < 16; sp50++) {
-            sp3C[arg0->unk18[sp54].loopEnd + sp50] = sp40[arg0->unk18[sp54].loopBegin + sp50];
-          }
-        }
-      } else {  // no loop
-        arg0->unk438->wt[sp54].len = arg0->unk18[sp54].smplen;
-        arg0->unk438->wt[sp54].type = H2O_RAW8_WAVE;
-        arg0->unk438->wt[sp54].flags = 0xFF;
-        arg0->unk438->wt_len[sp54] = arg0->unk18[sp54].smplen;
-        sp4C = sp30;
-        sp48 = (s8 *) arg0->unk438->wt[sp54].base;
-        sp38 = arg0->unk18[sp54].smplen;
-
-        while (sp38--) {
-          *sp48++ = *sp4C++;
-        }
-
-        sp48 = (s8 *) arg0->unk438->wt[sp54].base;
-        sp2C = sp48[arg0->unk18[sp54].smplen] >> 4;
-
-        for (sp50 = 0, sp2D = 0; sp50 < 16; sp50++) {
-          sp48[sp50 + arg0->unk18[sp54].smplen] = sp48[arg0->unk18[sp54].smplen] - sp2D;
-          sp2D += sp2C;
-        }
-      }
-      printf("\x1b[1;45m%s Released Handle: %x\x1b[0m\n", "Allocdcm Scratch8", sp30);
-      free(sp30);
-    }
-
-    if (arg0->unk18[sp54].flags & 4) {  // loop
-      arg0->unk438->wt[sp54].waveInfo.rawWave.loop = &arg0->unk438->rawLoop[sp54];
-      arg0->unk438->rawLoop[sp54].start = arg0->unk18[sp54].loopBegin;
-      arg0->unk438->rawLoop[sp54].end = arg0->unk18[sp54].loopEnd;
-      arg0->unk438->loopBegin[sp54] = arg0->unk18[sp54].loopBegin;
-      arg0->unk438->loopEnd[sp54] = arg0->unk18[sp54].loopEnd;
-      arg0->unk438->rawLoop[sp54].count = -1;
-    } else {  // no loop
-      arg0->unk438->wt[sp54].waveInfo.rawWave.loop = NULL;
-      arg0->unk438->rawLoop[sp54].count = 0;
-    }
-
-    arg0->unk1572++;
-
-    if (arg0->unk1572 == arg0->unk418.num_samples) {
-      arg0->unk1570 = FALSE;
-      for (sp54 = 0; sp54 < 16; sp54++) {
-        arg0->channels[sp54].wt = arg0->unk438->wt;
-        arg0->channels[sp54].pitch = 1.0;
-        arg0->channels[sp54].vol = 0;
-        arg0->channels[sp54].pan = 64;
-        arg0->channels[sp54].state = 0;
-      }
-      arg0->unk1584 = TRUE;
-      printf("**Last sample load at : %x SIZE: %x %d\n", arg0->unk1574, D_800D3B3C, D_800D3B3C);
-      //osWritebackDCacheAll();
-    }
-  }
-  */
-}
-
-static void Audio2_800874ac_sevenliner(SongPlayer *arg0) {
-  arg0->unk1568 = arg0->unk1568 & 0xFF;
-  arg0->unk156A = arg0->unk156A & 0xFF;
-
-  while ((u8)arg0->unk156A != (u8)arg0->unk1568) {
-    arg0->unk1468[(u8)arg0->unk156A] = func_8008F0D0(&arg0->unk458);
-    arg0->unk156A = (arg0->unk156A + 1) & 0xFF;
-  }
-}
-
-static void Audio2_8008756c_eightliner(SongPlayer *arg0) {
-  s32 i;
-
-  arg0->unk1568 = 0;
-  arg0->unk156A = 0;
-  arg0->unk156C = 0;
-  //printf("unk1468[]:");
-  for (i = 0; i < 0x100; i++) {
-    arg0->unk1468[(u8)i] = func_8008F0D0(&arg0->unk458);
-    //printf(" %02X", arg0->unk1468[(u8)i]);
-  }
-  //printf("\n");
-}
-
-// set music_level (volume)
-void func_800875EC(u16 arg0, SongPlayer *arg1) {
-  arg1->unk157C = arg0;
-  arg1->unk1587 = TRUE;
-}
-
 static ALMicroTime Dcm_VoiceHandler(void *arg0) {
   SongPlayer *sp5C;
   SongPlayer *sp58;
@@ -1220,49 +759,8 @@ static ALMicroTime Dcm_VoiceHandler(void *arg0) {
   u32 sp48;
   s32 sp44;
   u8 sp43;
-  //ALParam *param;
-  //ALFilter *filter;
-  //UnkStruct_102 *sp34;
 
   sp5C = (SongPlayer *)arg0;
-  /*
-  if (osRecvMesg(&D_80128CE0, (OSMesg *)&sp34, 0) == 0) {
-    sp58 = sp34->unk4;
-    switch (sp34->unk0) {
-    case 0:
-      for (sp4C = 0; sp4C < sp58->unk440; sp4C++) {
-        channel = &sp58->channels[sp4C];
-        if (channel->state != 0) {
-          channel->state = 0;
-          alSynStopVoice(&sp58->alGlobals->drvr, &channel->v);
-        }
-      }
-      sp58->unk454 = 3;
-      osSendMesg(&D_80128D18, NULL, OS_MESG_NOBLOCK);
-      sp34->unk0 = 0;
-      return sp58->unk1578;
-    case 1:
-      sp58->unk454 = 1;
-      sp34->unk0 = 0;
-      osSendMesg(&D_80128D18, NULL, OS_MESG_NOBLOCK);
-      break;
-    case 4:
-      sp58->unk1586 = 0;
-      func_8008EFA0(sp58->unk444, &sp58->unk458);
-      Audio2_8008756c_eightliner(sp58);
-      sp34->unk0 = 0;
-      osSendMesg(&D_80128D18, NULL, OS_MESG_NOBLOCK);
-      return sp58->unk1578;
-    default:
-      sp34->unk0 = 0;
-      break;
-    }
-  }
-
-  if (sp5C->unk454 == 3) {
-    return sp5C->unk1578;
-  }
-  */
 
   if (sp5C->unk454 == 1) {
     static int pattern_no = 0;
@@ -1273,22 +771,6 @@ static ALMicroTime Dcm_VoiceHandler(void *arg0) {
     static XmPacket xm_pkt[16];
 
     if (sp5C->unk156C >= sp5C->unk450 && row_no == 0 && subrow_no == 0) {
-      if (sp5C->unk158E) {
-        //rmonPrintf("RESTART: BASE: %x CUR: %x\n", D_80128DDC, sp5C->unk1580);
-        printf("RESTART SONG: %d\n", sp5C->unk1580);
-        for (sp4C = 0; sp4C < sp5C->unk440; sp4C++) {
-          channel = &sp5C->channels[sp4C];
-          if (channel->state != 0) {
-            channel->state = 0;
-            //alSynStopVoice(&sp5C->alGlobals->drvr, &channel->v);
-          }
-          //channel->v.state = 0;
-        }
-        sp5C->unk444 = sp5C->unk448;
-        func_8008EFA0(sp5C->unk444, &sp5C->unk458);
-        Audio2_8008756c_eightliner(sp5C);
-        return sp5C->unk1578;
-      }
       sp5C->unk454 = 0;
       return sp5C->unk1578;
     }
@@ -1351,7 +833,6 @@ static ALMicroTime Dcm_VoiceHandler(void *arg0) {
           sp5C->unk156C++;
           if (sp5C->unk1598 == 0) {
             sp5C->unk1598 = 1;
-            //osWritebackDCacheAll();
           }
 
           if (sp57 & 0x80) {
@@ -1365,7 +846,7 @@ static ALMicroTime Dcm_VoiceHandler(void *arg0) {
               sp43 = sp48 >> 14;
               sp48 &= 0x3FFF;
               sp48 = D_800D3B40[sp43] + (sp48 << sp43);
-              channel->pitch = Dcm_SetPitch(sp48);
+              //channel->pitch = Dcm_SetPitch(sp48);
 
               printf("FREQ=%d ", sp48);
               channel_note[sp4C].freq = sp48;
@@ -1414,33 +895,6 @@ static ALMicroTime Dcm_VoiceHandler(void *arg0) {
               channel_note[sp4C].sample_num = sp56;
               printf("INST=%d ", channel_note[sp4C].sample_num + 1);
               channel_note[sp4C].sample_rate = dcm_lut[song_no].sample_rates[sp56];
-
-              if (channel->state == 1) {
-                /*
-                  if (channel->v.pvoice != NULL) {
-                  // See /opt/ultralib/src/audio/synallocvoice.c
-                  filter = channel->v.pvoice->channelKnob;
-                  channel->v.pvoice->offset = 320;
-
-                  param = __allocParam();
-                  if (param != NULL) {
-                  param->delta = sp5C->alGlobals->drvr.paramSamples;
-                  param->type = AL_FILTER_SET_VOLUME;
-                  param->data.i = 0;
-                  param->moredata.i = channel->v.pvoice->offset - 64;
-                  filter->setParam(filter, AL_FILTER_ADD_UPDATE, param);
-                  }
-
-                  param = __allocParam();
-                  if (param != NULL) {
-                  param->delta = sp5C->alGlobals->drvr.paramSamples + channel->v.pvoice->offset;
-                  param->type = AL_FILTER_STOP_VOICE;
-                  param->next = NULL;
-                  filter->setParam(filter, AL_FILTER_ADD_UPDATE, param);
-                  }
-                  }
-                */
-              }
             }
 
             if (sp57 & 0x04) {  // set sample offset
@@ -1451,61 +905,9 @@ static ALMicroTime Dcm_VoiceHandler(void *arg0) {
               //channel->wt->base = sp5C->unk438->wt_base[sp5C->unk428[sp4C]] + sp44;
               //channel->wt->len = sp5C->unk438->wt_len[sp5C->unk428[sp4C]] - (channel->wt->base - sp5C->unk438->wt_base[sp5C->unk428[sp4C]]);
               printf("SAMPLE_OFFSET=%04hX ", sp44);
-
-              if (channel->state == 1) {
-                /*
-                  if (channel->v.pvoice != NULL) {
-                  filter = channel->v.pvoice->channelKnob;
-                  channel->v.pvoice->offset = 320;
-
-                  param = __allocParam();
-                  if (param != NULL) {
-                  param->delta = sp5C->alGlobals->drvr.paramSamples;
-                  param->type = AL_FILTER_SET_VOLUME;
-                  param->data.i = 0;
-                  param->moredata.i = channel->v.pvoice->offset - 64;
-                  filter->setParam(filter, AL_FILTER_ADD_UPDATE, param);
-                  }
-
-                  param = __allocParam();
-                  if (param != NULL) {
-                  param->delta = sp5C->alGlobals->drvr.paramSamples + channel->v.pvoice->offset;
-                  param->type = AL_FILTER_STOP_VOICE;
-                  param->next = NULL;
-                  filter->setParam(filter, AL_FILTER_ADD_UPDATE, param);
-                  }
-                  }
-                */
-              }
             }
 
             if (sp57 & 0x02) {  // start voice
-              if (channel->state == 1) {
-                /*
-                  if (channel->v.pvoice != NULL) {
-                  filter = channel->v.pvoice->channelKnob;
-                  channel->v.pvoice->offset = 320;
-
-                  param = __allocParam();
-                  if (param != NULL) {
-                  param->delta = sp5C->alGlobals->drvr.paramSamples;
-                  param->type = AL_FILTER_SET_VOLUME;
-                  param->data.i = 0;
-                  param->moredata.i = channel->v.pvoice->offset - 64;
-                  filter->setParam(filter, AL_FILTER_ADD_UPDATE, param);
-                  }
-
-                  param = __allocParam();
-                  if (param != NULL) {
-                  param->delta = sp5C->alGlobals->drvr.paramSamples + channel->v.pvoice->offset;
-                  param->type = AL_FILTER_STOP_VOICE;
-                  param->next = NULL;
-                  filter->setParam(filter, AL_FILTER_ADD_UPDATE, param);
-                  }
-                  }
-                */
-              }
-
               if (sp57 & 0x04) {
                 if (sp5C->alGlobals != NULL) {
                   if (channel->wt != NULL) {
@@ -1608,95 +1010,11 @@ static ALMicroTime Dcm_VoiceHandler(void *arg0) {
   return sp5C->unk1578;
 }
 
-/*
-  Significance of the number 14318184.
 
-  14.318184 MHz is a standard, widely used clock crystal frequency in computer hardware, chosen to be an exact multiple of the NTSC color television subcarrier frequency (3.579545 MHz).
-
-  Its prevalence stems from computing history and architecture:
-
-  - Television Roots: The exact frequency is 4 x 3.579545 MHz (the NTSC color burst frequency). When early IBM PCs and graphics cards were being designed, it was cheaper to use readily available, mass-produced crystals from the television industry to generate the clock signals for the system.
-
-  - PC Clock Generation: In many computer architectures -- particularly older motherboards and legacy ports -- this frequency is the base clock from which various system buses (like ISA) are derived.
-
-  - Audio and I/O Codecs: It is still frequently used as the primary clock generator for inexpensive audio codecs and sound cards.
-
-  Because these quartz crystals have been in mass production for personal computers for over two decades, they are highly cost-effective and easy to source.
-*/
-
-/*
-  Significance of the number 8363.
-
-  A reference to 8363 Hz refers to the vintage Amiga computer audio sample rate. In early tracker software, this specific frequency was tied to the Amiga's hardware clock and remains a point of reference for tracking old-school digital music.
-
-  - The Amiga Clock: Early trackers (like Protracker) used the NTSC Amiga's 8363 Hz Paula chip interrupt rate as the system's baseline sample rate for a Middle C (C-4) note.
-
-  - The "32 Samples" Math: The pitch for C-4 is roughly 261.63 Hz. If you divide 8363 Hz by 261.63 Hz, you get approximately 32. Because 32 is a power of 2, it made looping and pitching waveforms much cleaner and less prone to digital clicking on hardware with limited memory.
-*/
-
-static f32 Dcm_SetPitch(u16 arg0) {
-  f32 sp1C;
-
-  if (arg0 <= 0) {
-    return 0;
-  }
-
-  sp1C = 8363 * (1712.0 / (f32) (14318184 / arg0)) / 36000;
-  if (sp1C >= 2.0) {
-    //rmonPrintf("pitch %f out of range\n", sp1C);
-    printf("pitch %f out of range\n", sp1C);
-    sp1C = 1;
-  }
-  if (sp1C < 0.0) {
-    sp1C *= -1.0;
-    //rmonPrintf("\nNEGATIVE PITCH\n");
-    printf("\nNEGATIVE PITCH\n");
-  }
-
-  return sp1C;
-}
-
-static void Audio2_8008bf58_eightliner(u8 *arg0, DcmHeader *arg1) {
-  arg1->dcm1 = Audio2_8008c130_oneliner_arg0_math_3(arg0);
-  arg0 += 4;
-  arg1->num_channels = *arg0++;
-  arg1->num_samples = *arg0++;
-  arg1->stream_sz = Audio2_8008c104_oneliner_arg0_math_2(arg0);
-  arg0 += 4;
-  arg1->unkC = Audio2_8008c104_oneliner_arg0_math_2(arg0);
-  arg0 += 4;
-}
-
-static void Audio2_8008c014_tenliner(u8 *arg0, Sample *arg1) {
-  arg1->smplen = Audio2_8008c104_oneliner_arg0_math_2(arg0);
-  arg0 += 4;
-  arg1->loopBegin = Audio2_8008c104_oneliner_arg0_math_2(arg0);
-  arg0 += 4;
-  arg1->loopEnd = Audio2_8008c104_oneliner_arg0_math_2(arg0);
-  arg0 += 4;
-  arg1->flags = Audio2_8008c0e0_oneliner_arg0_math(arg0);
-  arg0 += 2;
-  arg1->id = Audio2_8008c0e0_oneliner_arg0_math(arg0);
-  arg0 += 2;
-}
-
-static s16 Audio2_8008c0e0_oneliner_arg0_math(u8 *arg0) {
-  return arg0[0] + (arg0[1] << 8);
-}
-
-static s32 Audio2_8008c104_oneliner_arg0_math_2(u8 *arg0) {
-  return arg0[0] + (arg0[1] << 8) + (arg0[2] << 16) + (arg0[3] << 24);
-}
-
-static s32 Audio2_8008c130_oneliner_arg0_math_3(u8 *arg0) {
-  return arg0[3] + (arg0[2] << 8) + (arg0[1] << 16) + (arg0[0] << 24);
-}
-
-
-void Audio_InitAudio(void) {
+static void Audio_InitAudio(void) {
   D_80128DD8 = 0x4000;  // volume (set in the middle -- half of max)
 
-  Dcm_Init(&g_songPlayer, &D_80123A18, D_80124678, 16, D_80128DD8, /*TRUE*/ FALSE);
+  Dcm_Init(&g_songPlayer, &D_80123A18, D_80124678, 16, D_80128DD8);
 
   g_songPlayer.unk1590 = malloc(0xBCF20);
 
@@ -1706,16 +1024,13 @@ void Audio_InitAudio(void) {
   Audio2_80086138_largeliner_channels(&g_songPlayer, D_80126790, 1);
   g_songPlayer.unk1580 = song_no;
   g_songPlayer.unk1582 = song_no;
-  g_songPlayer.unk1584 = FALSE;
 
-  while (!g_songPlayer.unk1584) {
-    Audio2_AllocDcmScratch8(&g_songPlayer);
-  }
   free(D_80126790);
 
   // TODO: init sfx
 
 }
+
 
 int main(int argc, char **argv) {
   int song_arg;
@@ -1731,9 +1046,6 @@ int main(int argc, char **argv) {
   ALMicroTime micro_time;
 
   Audio_InitAudio();
-
-  // set music volume
-  //func_800875EC(0x1000, &g_songPlayer);
 
   g_songPlayer.unk454 = 1;
   while (g_songPlayer.unk454 != 0) {

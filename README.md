@@ -1,6 +1,6 @@
 # dcm2xm
 
-Parses dcm assets from N64's The New Tetris and converts them to xm files.  This is not a full reconstruction of the original xm files, since a dcm asset is processed xm pattern data.  This tool can re-create the 16 songs from the game (as partially reconstructed xm files), which can then be played from most media players and trackers.
+Parses dcm assets from N64's The New Tetris and converts them to xm files.  This is not a full reconstruction of the original xm files created by Neil D. Voss, since a dcm asset is processed xm pattern data.  This tool can re-create the 16 songs from the game (as partially reconstructed xm files), which can then be played from most media players and trackers.
 
 ## Make `dcm2xm`
 ```

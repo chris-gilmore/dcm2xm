@@ -34,7 +34,6 @@ typedef double  f64;    /* double prec floating point */
 
 #include <dcm_defs.h>
 #include <055220.h>
-// #include <dcm.h>
-//#include <audio.h>
+#include <dcm.h>
 
 #endif /* !_COMMON_H_ */
