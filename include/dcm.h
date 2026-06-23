@@ -1,5 +1,5 @@
-#ifndef _dcm_H_
-#define _dcm_H_
+#ifndef _DCM_H_
+#define _DCM_H_
 
 typedef struct {
   s32   dcm1;  // 'DCM1' as int
@@ -41,13 +41,14 @@ typedef struct {
   u32         unk156C;
   u8          unk1586;
   u8         *heap;
+  u16         bpm;
 } SongReader;
 
-extern /* static */ s32 D_800D3B40[];
+extern s32 g_freq_base[];
 
 extern void   dcm_song_init(SongReader *);
 extern void   Audio2_80086138_largeliner_channels(SongReader *, u8 *);
+extern void   Audio2_800874ac_sevenliner(SongReader *);
+extern void   Audio2_8008756c_eightliner(SongReader *);
 
-extern /* static */ void Audio2_800874ac_sevenliner(SongReader *);
-
-#endif /* !_dcm_H_ */
+#endif /* !_DCM_H_ */

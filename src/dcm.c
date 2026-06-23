@@ -1,11 +1,9 @@
 #include "common.h"
 
-/* static */ s32 D_800D3B40[4] = { 0, 0x4000, 0xC000, 0x1C000 };
+s32 g_freq_base[4] = { 0, 0x4000, 0xC000, 0x1C000 };
 
 static void print_DcmHeader(DcmHeader *);
 static void print_Sample(Sample *);
-//static void Audio2_800874ac_sevenliner(SongReader *);
-static void Audio2_8008756c_eightliner(SongReader *);
 static void Audio2_8008bf58_eightliner(u8 *, DcmHeader *);
 static void Audio2_8008c014_tenliner(u8 *, Sample *);
 static s16 Audio2_8008c0e0_oneliner_arg0_math(u8 *);
@@ -31,6 +29,7 @@ static void print_Sample(Sample *sample) {
 void dcm_song_init(SongReader *reader) {
   reader->unk454 = 0;
   reader->unk1586 = 0;
+  reader->bpm = 0;
 }
 
 void Audio2_80086138_largeliner_channels(SongReader *reader, u8 *buf) {
@@ -63,7 +62,7 @@ void Audio2_80086138_largeliner_channels(SongReader *reader, u8 *buf) {
   }
 }
 
-/* static */ void Audio2_800874ac_sevenliner(SongReader *reader) {
+void Audio2_800874ac_sevenliner(SongReader *reader) {
   reader->unk1568 = reader->unk1568 & 0xFF;
   reader->unk156A = reader->unk156A & 0xFF;
 
@@ -73,7 +72,7 @@ void Audio2_80086138_largeliner_channels(SongReader *reader, u8 *buf) {
   }
 }
 
-static void Audio2_8008756c_eightliner(SongReader *reader) {
+void Audio2_8008756c_eightliner(SongReader *reader) {
   s32 i;
 
   reader->unk1568 = 0;
