@@ -8,6 +8,9 @@ void audio_init(SongReader *, u16);
 void audio_deinit(SongReader *);
 void dcm_read_song(SongReader *, u32 *);
 
+/*
+  Derived from function `Audio_InitAudio` from https://github.com/chris-gilmore/tnt-splat/blob/master/src/newtetris/audio.c
+*/
 void audio_init(SongReader *song_reader, u16 song_no) {
   void *dcm_buf;
 
@@ -28,6 +31,9 @@ void audio_deinit(SongReader *song_reader) {
   free(song_reader->heap);
 }
 
+/*
+  Derived from function `Dcm_VoiceHandler` from https://github.com/chris-gilmore/tnt-splat/blob/master/src/newtetris/dcm.c
+*/
 void dcm_read_song(SongReader *reader, u32 *sample_rates) {
   u8 sp57;
   u8 sp56;
@@ -35,7 +41,6 @@ void dcm_read_song(SongReader *reader, u32 *sample_rates) {
   s32 sp4C;
   u32 sp48;
   s32 sp44;
-  u8 sp43;
 
   if (reader->unk454 == 1) {
     static int pattern_no = 0;
@@ -88,14 +93,8 @@ void dcm_read_song(SongReader *reader, u32 *sample_rates) {
               reader->unk156C += 2;
               reader->unk1568 += 2;
 
-              // TODO
-              sp48 &= 0xFFFF;
-              sp43 = sp48 >> 14;
-              sp48 &= 0x3FFF;
-              sp48 = g_freq_base[sp43] + (sp48 << sp43);
-
-              printf("FREQ=%d ", sp48);
-              channel->freq = sp48;
+              channel->freq = dcm_decode_freq(sp48);
+              printf("FREQ=%d ", channel->freq);
             }
 
             if (sp57 & 0x20) {  // set vol

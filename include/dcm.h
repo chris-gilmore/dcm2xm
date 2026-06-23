@@ -44,8 +44,7 @@ typedef struct {
   u16         bpm;
 } SongReader;
 
-extern s32 g_freq_base[];
-
+extern u32    dcm_decode_freq(u32);
 extern void   dcm_song_init(SongReader *);
 extern void   Audio2_80086138_largeliner_channels(SongReader *, u8 *);
 extern void   Audio2_800874ac_sevenliner(SongReader *);

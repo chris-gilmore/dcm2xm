@@ -1,6 +1,10 @@
 #include "common.h"
 
-s32 g_freq_base[4] = { 0, 0x4000, 0xC000, 0x1C000 };
+/*
+  Derived from https://github.com/chris-gilmore/tnt-splat/blob/master/src/newtetris/dcm.c
+*/
+
+static u32 freq_base[4] = { 0, 0x4000, 0xC000, 0x1C000 };
 
 static void print_DcmHeader(DcmHeader *);
 static void print_Sample(Sample *);
@@ -9,6 +13,19 @@ static void Audio2_8008c014_tenliner(u8 *, Sample *);
 static s16 Audio2_8008c0e0_oneliner_arg0_math(u8 *);
 static s32 Audio2_8008c104_oneliner_arg0_math_2(u8 *);
 static s32 Audio2_8008c130_oneliner_arg0_math_3(u8 *);
+
+u32 dcm_decode_freq(u32 enc_freq) {
+  u32 dec_freq;
+  u32 freq_base_idx;
+  u32 freq_offset;
+
+  enc_freq &= 0xFFFF;
+  freq_base_idx = enc_freq >> 14;
+  freq_offset = enc_freq & 0x3FFF;
+  dec_freq = freq_base[freq_base_idx] + (freq_offset << freq_base_idx);
+
+  return dec_freq;
+}
 
 static void print_DcmHeader(DcmHeader *dcmHeader) {
   printf("dcm1: %c%c%c%c\n", dcmHeader->dcm1 >> 24, dcmHeader->dcm1 >> 16, dcmHeader->dcm1 >> 8, dcmHeader->dcm1);

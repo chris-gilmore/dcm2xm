@@ -1,6 +1,10 @@
 #include "common.h"
 
 /*
+  Derived from https://github.com/chris-gilmore/tnt-splat/blob/master/src/newtetris/lz77_codec.c
+*/
+
+/*
   Preset dictionary.
 */
 void func_8008EFA0(u8 *arg0, LZ77_Decompressor *arg1) {
